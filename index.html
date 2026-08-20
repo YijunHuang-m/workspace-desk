@@ -1406,8 +1406,21 @@ function collectPendingSubtasks(){
 // 核心分配算法：把子项按工作日分配
 function allocateWorkload(capacity){
   const items = collectPendingSubtasks();
-  // 排序：工作日剩余少的优先（DDL 紧），同级按重要程度降序
+  // 四象限优先级（Covey 时间管理）：Q1(紧急+重要)>Q2(重要不紧急)>Q3(紧急不重要)>Q4(都不)
+  const qPri = (imp, wdays) => {
+    if(wdays === null) return 3;
+    const urgent = wdays <= 1;
+    const important = imp >= 4;
+    if(urgent && important) return 0; // Q1
+    if(!urgent && important) return 1; // Q2
+    if(urgent && !important) return 2; // Q3
+    return 3; // Q4
+  };
+  // 排序：先按象限，再按 deadline 升序，再按 importance 降序，再按 priority 升序
   items.sort((a,b)=>{
+    const qa = qPri(a.importance, a.workdaysLeft);
+    const qb = qPri(b.importance, b.workdaysLeft);
+    if(qa !== qb) return qa - qb;
     if(a.workdaysLeft !== b.workdaysLeft) return a.workdaysLeft - b.workdaysLeft;
     if(b.importance !== a.importance) return b.importance - a.importance;
     const po = {'P0':0,'P1':1,'P2':2,'P3':3};
