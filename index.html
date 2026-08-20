@@ -1591,14 +1591,14 @@ function quickHandle(pid){
 
 /* ---------- Week ---------- */
 function renderWeek(){
-  // 本周 = 本周一 ~ 周日；展示 DDL 在 4-7 天内的未完成项目（今天要处理已覆盖 ≤3天）
+  // 本周 = 本周一 ~ 周日；展示 DDL 在 1-7 天内的未完成项目（今日规划已按子项推荐，这里按项目维度展示本周 DDL）
   const items = [];
   projects.forEach(p=>{
     if(p.archived) return;
     if(p.status === 'done') return;
     const days = daysUntil(p.deadline);
     if(days === null) return;
-    if(days < 4 || days > 7) return;
+    if(days < 1 || days > 7) return;
     items.push({p, days});
   });
   // 按 days 升序，再按优先级
