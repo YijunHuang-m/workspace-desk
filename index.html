@@ -122,6 +122,75 @@ textarea{resize:vertical;min-height:80px}
 .today-item .actions{display:flex;gap:6px}
 .today-empty{text-align:center;padding:16px;color:var(--text-mute);font-size:13px}
 
+/* ========== Today Plan (容量规划) ========== */
+.plan-capacity-bar{
+  display:flex;align-items:center;gap:10px;
+  background:#faf7f0;border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.cap-label{font-size:12px;color:var(--text-mute);flex-shrink:0}
+.cap-controls{display:flex;align-items:center;gap:6px}
+.cap-btn{
+  width:24px;height:24px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--primary-light);color:var(--primary);
+  font-size:14px;font-weight:600;border:none;cursor:pointer;
+  flex-shrink:0;
+}
+.cap-btn:hover{background:var(--primary);color:#fff}
+.cap-value{font-size:14px;font-weight:600;color:var(--primary);min-width:36px;text-align:center}
+.cap-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.cap-mini-btn{
+  font-size:11px;padding:3px 8px;border-radius:4px;
+  background:transparent;color:var(--text-mute);border:1px solid var(--border);
+  cursor:pointer;white-space:nowrap;
+}
+.cap-mini-btn:hover{background:var(--primary-light);color:var(--primary)}
+.cap-progress{
+  width:100%;height:6px;background:#ebe4d3;border-radius:3px;
+  overflow:hidden;margin-top:6px;
+}
+.cap-progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.plan-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--card);border:1px solid var(--border);
+  font-size:13px;margin-bottom:6px;cursor:pointer;
+  transition:border-color .15s;
+}
+.plan-item:hover{border-color:var(--primary)}
+.plan-item.urgent{border-left:3px solid var(--danger)}
+.plan-item.normal{border-left:3px solid var(--warn)}
+.plan-item.light{border-left:3px solid var(--info)}
+.plan-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.plan-dot.urgent{background:var(--danger)}
+.plan-dot.normal{background:var(--warn)}
+.plan-dot.light{background:var(--info)}
+.plan-name{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-meta{font-size:11px;color:var(--text-mute);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.plan-hours{font-size:13px;font-weight:600;color:var(--primary);flex-shrink:0}
+.plan-hours.over{color:var(--danger)}
+.plan-subhead{font-size:12px;color:var(--text-mute);margin:10px 0 6px;font-weight:500}
+/* 负载条形图 */
+.load-chart{display:flex;gap:6px;align-items:flex-end;margin-top:8px;height:80px}
+.load-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.load-bar-label{font-size:10px;color:var(--text-mute);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.load-bar-hours{font-size:11px;font-weight:600}
+.load-bar-container{width:100%;max-width:50px;background:#f5efe3;border-radius:4px 4px 0 0;flex:1;display:flex;align-items:flex-end;position:relative}
+.load-bar-fill{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .3s}
+.load-bar-fill.ok{background:var(--success)}
+.load-bar-fill.warn{background:var(--warn)}
+.load-bar-fill.over{background:var(--danger)}
+.load-cap-line{position:absolute;left:0;right:0;border-top:1.5px dashed var(--text-mute);opacity:.5}
+.load-bar-date{font-size:9px;color:var(--text-mute)}
+.load-bar-over-tag{font-size:9px;color:var(--danger);font-weight:600}
+.plan-alert{
+  background:var(--danger-light);border:1px solid #d4a8a0;
+  border-radius:var(--radius-sm);padding:8px 12px;
+  font-size:12px;color:var(--danger);margin-top:8px;line-height:1.5;
+}
+
 /* ========== Nav ========== */
 .nav{
   display:flex;gap:6px;background:var(--card);padding:6px;border-radius:var(--radius);
@@ -624,16 +693,16 @@ textarea{resize:vertical;min-height:80px}
     </button>
   </div>
 
-  <!-- Today Section -->
+  <!-- Today Plan Section -->
   <div class="today-section" id="todaySection">
     <div class="today-head">
       <div class="today-title">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        今天要处理
+        今日规划
         <span class="today-count" id="todayCount">0</span>
       </div>
     </div>
-    <div class="today-list" id="todayList"></div>
+    <div id="planBody"></div>
   </div>
 
   <!-- Week Section (仅项目 tab 显示) -->
@@ -1021,6 +1090,8 @@ let editingSubtasks = [];
 let currentDetailId = null;  // 当前打开的详情项目 id
 let currentSubsContext = null; // 当前依赖 popover 操作的子项数组引用
 let showArchived = false;  // 是否显示已归档项目
+let dailyCapacity = parseFloat(localStorage.getItem('wb_daily_capacity')) || 4;  // 每日可用工时
+let todayCapacityOverride = null;  // 今天临时容量覆盖（null=用默认）
 
 /* ---------- Storage ---------- */
 function loadData(){
@@ -1251,46 +1322,267 @@ function render(){
   checkDataGrowth();
 }
 
-/* ---------- Today ---------- */
-function renderToday(){
+/* ---------- Today Plan (容量规划) ---------- */
+
+// 判断是否工作日（周末不算）
+function isWorkday(date){
+  const day = date.getDay();
+  return day !== 0 && day !== 6;
+}
+
+// 从今天起，获取接下来 N 个工作日
+function getUpcomingWorkdays(count){
+  const days = [];
+  const d = new Date(); d.setHours(0,0,0,0);
+  while(days.length < count){
+    if(isWorkday(d)) days.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+
+// 计算从今天到 DDL 之间的工作日数量
+function workdaysUntil(dateStr){
+  if(!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
   const today = new Date(); today.setHours(0,0,0,0);
+  if(target < today) return 0;
+  let count = 0;
+  const d = new Date(today);
+  while(d <= target){
+    if(isWorkday(d)) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+// 收集所有未完成、未归档的子项（展平成统一结构）
+function collectPendingSubtasks(){
   const items = [];
   projects.forEach(p=>{
-    if(p.archived) return;
-    if(p.status === 'done') return;
-    const days = daysUntil(p.deadline);
-    if(days === null) return;
-    let cls = '', tag = '';
-    if(days < 0){ cls=''; tag='已逾期'; }
-    else if(days === 0){ cls='warn'; tag='今天到期'; }
-    else if(days <= 3){ cls='info'; tag=`${days}天后`; }
-    else return;
-    items.push({p, cls, tag, days});
+    if(p.archived || p.status === 'done') return;
+    const subs = sortSubtasksByDeps(p.subtasks || []);
+    subs.forEach(s=>{
+      if(s.done) return;
+      // 依赖未完成的子项不推荐
+      const depsReady = (s.deps || []).every(did => {
+        const ds = (p.subtasks||[]).find(x=>x.id===did);
+        return ds && ds.done;
+      });
+      if(!depsReady && (s.deps || []).length) return;
+      const wdays = workdaysUntil(p.deadline);
+      items.push({
+        subtaskId: s.id,
+        projectId: p.id,
+        projectName: p.name,
+        subtaskName: s.name,
+        hours: +s.hours || 0,
+        priority: p.priority,
+        importance: p.importance,
+        deadline: p.deadline,
+        workdaysLeft: wdays,
+        daysLeft: daysUntil(p.deadline),
+        depsReady
+      });
+    });
   });
-  // 按紧急度排序
-  items.sort((a,b)=>a.days - b.days);
+  return items;
+}
 
+// 核心分配算法：把子项按工作日分配
+function allocateWorkload(capacity){
+  const items = collectPendingSubtasks();
+  // 排序：工作日剩余少的优先（DDL 紧），同级按重要程度降序
+  items.sort((a,b)=>{
+    if(a.workdaysLeft !== b.workdaysLeft) return a.workdaysLeft - b.workdaysLeft;
+    if(b.importance !== a.importance) return b.importance - a.importance;
+    const po = {'P0':0,'P1':1,'P2':2,'P3':3};
+    return (po[a.priority]||2) - (po[b.priority]||2);
+  });
+
+  const todayCap = todayCapacityOverride !== null ? todayCapacityOverride : capacity;
+  const workdays = getUpcomingWorkdays(7);
+  const dayCaps = workdays.map((d, i) => ({
+    date: new Date(d),
+    capacity: i === 0 ? todayCap : capacity,
+    allocated: [],
+    totalHours: 0
+  }));
+
+  // 逐个分配
+  items.forEach(item => {
+    if(item.workdaysLeft === null || item.workdaysLeft === 0){
+      // 无 DDL 或已过期 → 放今天
+      dayCaps[0].allocated.push(item);
+      dayCaps[0].totalHours += item.hours;
+      return;
+    }
+    // 找到 DDL 前最后一天，从前往后填
+    let assigned = false;
+    for(let i = 0; i < dayCaps.length; i++){
+      const wd = dayCaps[i].date;
+      // 检查是否在 DDL 前
+      const ddlDate = new Date(item.deadline + 'T00:00:00');
+      if(wd > ddlDate) continue;
+      // 填到这一天
+      dayCaps[i].allocated.push(item);
+      dayCaps[i].totalHours += item.hours;
+      assigned = true;
+      break;
+    }
+    if(!assigned){
+      // 超出 7 天范围 → 放最后一天
+      const last = dayCaps[dayCaps.length - 1];
+      last.allocated.push(item);
+      last.totalHours += item.hours;
+    }
+  });
+
+  // 重新优化：如果某天超载，把多余项推到下一天（贪心）
+  for(let i = 0; i < dayCaps.length - 1; i++){
+    const day = dayCaps[i];
+    while(day.totalHours > day.capacity && day.allocated.length > 1){
+      // 把最后加的（优先级最低的）推到下一天
+      const moved = day.allocated.pop();
+      day.totalHours -= moved.hours;
+      dayCaps[i+1].allocated.unshift(moved);
+      dayCaps[i+1].totalHours += moved.hours;
+    }
+  }
+
+  return dayCaps;
+}
+
+// 渲染今日规划
+function renderToday(){
+  const todayCap = todayCapacityOverride !== null ? todayCapacityOverride : dailyCapacity;
+  const dayCaps = allocateWorkload(dailyCapacity);
+  const today = dayCaps[0];
+
+  const body = document.getElementById('planBody');
+  const countEl = document.getElementById('todayCount');
   const sec = document.getElementById('todaySection');
-  const list = document.getElementById('todayList');
-  const count = document.getElementById('todayCount');
-  count.textContent = items.length;
-  if(items.length === 0){
-    sec.classList.add('empty');
-    list.innerHTML = '<div class="today-empty">今天没有需要处理的项目，继续保持！</div>';
-  }else{
-    sec.classList.remove('empty');
-    list.innerHTML = items.map(it=>{
-      const totalHours = (it.p.subtasks||[]).reduce((a,s)=>a+(+s.hours||0),0);
-      const doneHours = (it.p.subtasks||[]).filter(s=>s.done).reduce((a,s)=>a+(+s.hours||0),0);
-      return `<div class="today-item ${it.cls}">
-        <span class="tag">${it.tag}</span>
-        <div class="name">${escapeHtml(it.p.name)}</div>
-        <div class="meta">${doneHours}/${totalHours}h · ${it.p.priority}</div>
-        <div class="actions">
-          <button class="btn btn-sm btn-primary" onclick="quickHandle('${it.p.id}')">处理</button>
+
+  // 计算今日状态
+  const todayHours = today.totalHours;
+  const remaining = todayCap - todayHours;
+  const isOver = todayHours > todayCap;
+  countEl.textContent = today.allocated.length;
+  countEl.style.background = isOver ? 'var(--danger)' : (todayHours > todayCap * 0.8 ? 'var(--warn)' : 'var(--success)');
+
+  let html = '';
+
+  // 容量调节条
+  html += `<div class="plan-capacity-bar">
+    <span class="cap-label">每日容量</span>
+    <div class="cap-controls">
+      <button class="cap-btn" onclick="adjustTodayCapacity(-0.5)">-</button>
+      <span class="cap-value">${todayCap}h</span>
+      <button class="cap-btn" onclick="adjustTodayCapacity(0.5)">+</button>
+    </div>
+    <div class="cap-actions">
+      ${todayCapacityOverride !== null ? '<button class="cap-mini-btn" onclick="resetTodayCapacity()">恢复默认</button>' : ''}
+      <button class="cap-mini-btn" onclick="setDailyCapacityDefault()">设为默认</button>
+    </div>
+    <div class="cap-progress">
+      <div class="cap-progress-fill" style="width:${Math.min(100, todayHours/todayCap*100)}%;background:${isOver?'var(--danger)':'var(--success)'}"></div>
+    </div>
+  </div>`;
+
+  // 今日清单
+  if(today.allocated.length === 0){
+    html += '<div class="today-empty">今天没有需要处理的子项，继续保持！</div>';
+  } else {
+    html += '<div class="plan-subhead">今日建议清单（按优先级排序）</div>';
+    today.allocated.forEach(item => {
+      const urgencyClass = item.workdaysLeft !== null && item.workdaysLeft <= 1 ? 'urgent' :
+                           (item.workdaysLeft !== null && item.workdaysLeft <= 3 ? 'normal' : 'light');
+      const tag = item.daysLeft < 0 ? '已逾期' :
+                 item.daysLeft === 0 ? '今天到期' :
+                 item.daysLeft === 1 ? '明天到期' :
+                 item.workdaysLeft + '个工作日';
+      html += `<div class="plan-item ${urgencyClass}" onclick="openDetailModal('${item.projectId}')">
+        <span class="plan-dot ${urgencyClass}"></span>
+        <div class="plan-name">${escapeHtml(item.subtaskName)}</div>
+        <div class="plan-meta">
+          <span>${escapeHtml(item.projectName)}</span>
+          <span>${tag}</span>
         </div>
+        <span class="plan-hours">${item.hours}h</span>
       </div>`;
-    }).join('');
+    });
+    // 汇总
+    const overBy = Math.max(0, todayHours - todayCap);
+    html += `<div style="font-size:12px;color:var(--text-mute);margin-top:8px;padding:4px 12px">
+      已规划 <b style="color:${isOver?'var(--danger)':'var(--primary)'}">${todayHours}h</b> / ${todayCap}h
+      ${isOver ? `<span style="color:var(--danger)">（超出 ${overBy.toFixed(1)}h）</span>` : `（剩余 ${remaining.toFixed(1)}h）`}
+    </div>`;
+  }
+
+  // 负载预览（未来 7 个工作日）
+  html += '<div class="plan-subhead">未来 7 个工作日负载预览</div>';
+  const maxHours = Math.max(...dayCaps.map(d => Math.max(d.totalHours, d.capacity)), 1);
+  html += '<div class="load-chart">';
+  dayCaps.forEach((day, i) => {
+    const isOver = day.totalHours > day.capacity;
+    const ratio = day.totalHours / maxHours;
+    const fillClass = isOver ? 'over' : (day.totalHours > day.capacity * 0.8 ? 'warn' : 'ok');
+    const dateStr = day.date.toLocaleDateString('zh-CN', {month:'numeric', day:'numeric'});
+    const weekday = ['日','一','二','三','四','五','六'][day.date.getDay()];
+    const label = i === 0 ? '今天' : '周' + weekday;
+    html += `<div class="load-bar-wrap">
+      <div class="load-bar-label">${label}</div>
+      <div class="load-bar-hours" style="color:${isOver?'var(--danger)':'var(--text)'}">${day.totalHours}h</div>
+      <div class="load-bar-container">
+        <div class="load-cap-line" style="bottom:${(day.capacity/maxHours)*100}%"></div>
+        <div class="load-bar-fill ${fillClass}" style="height:${Math.max(4, ratio*100)}%"></div>
+      </div>
+      <div class="load-bar-date">${dateStr}</div>
+      ${isOver ? `<div class="load-bar-over-tag">+${(day.totalHours - day.capacity).toFixed(1)}h</div>` : ''}
+    </div>`;
+  });
+  html += '</div>';
+
+  // 超载预警
+  const overloadedDays = dayCaps.filter((d, i) => i > 0 && d.totalHours > d.capacity);
+  if(overloadedDays.length > 0){
+    const firstOver = overloadedDays[0];
+    const overBy = (firstOver.totalHours - firstOver.capacity).toFixed(1);
+    const dateStr = firstOver.date.toLocaleDateString('zh-CN', {month:'numeric', day:'numeric'});
+    const weekday = ['日','一','二','三','四','五','六'][firstOver.date.getDay()];
+    html += `<div class="plan-alert">
+      <b>负载预警</b>：${dateStr}（周${weekday}）需要 ${firstOver.totalHours}h 但容量只有 ${firstOver.capacity}h，超出 ${overBy}h。<br>
+      建议今天多做 ${overBy}h 或在更早的工作日提前处理。
+    </div>`;
+  }
+
+  body.innerHTML = html;
+  if(today.allocated.length === 0){
+    sec.classList.add('empty');
+  } else {
+    sec.classList.remove('empty');
+  }
+}
+
+function adjustTodayCapacity(delta){
+  const cur = todayCapacityOverride !== null ? todayCapacityOverride : dailyCapacity;
+  const newVal = Math.max(0.5, Math.round((cur + delta) * 2) / 2);
+  todayCapacityOverride = newVal;
+  renderToday();
+}
+function resetTodayCapacity(){
+  todayCapacityOverride = null;
+  renderToday();
+}
+function setDailyCapacityDefault(){
+  if(todayCapacityOverride !== null){
+    dailyCapacity = todayCapacityOverride;
+    localStorage.setItem('wb_daily_capacity', String(dailyCapacity));
+    toast('已设为默认每日容量 ' + dailyCapacity + 'h');
+    todayCapacityOverride = null;
+    renderToday();
+  }else{
+    toast('当前就是默认容量');
   }
 }
 function quickHandle(pid){
