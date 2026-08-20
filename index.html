@@ -328,9 +328,10 @@ textarea{resize:vertical;min-height:80px}
 .subtask.done .st-name{text-decoration:line-through;color:var(--text-light)}
 .subtask .del{color:var(--text-light);width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center}
 .subtask .del:hover{color:var(--danger);background:#f0ddd4}
-.subtask-add{display:flex;gap:6px;margin-top:6px}
-.subtask-add input{flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px}
+.subtask-add{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.subtask-add input{flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;min-width:120px}
 .subtask-add input.hours{max-width:80px}
+.subtask-add input.st-add-deadline{max-width:150px}
 
 /* ========== Progress log ========== */
 .progress-log{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;padding-right:4px}
@@ -508,6 +509,16 @@ textarea{resize:vertical;min-height:80px}
   flex-shrink:0;
 }
 .st-hours-input:focus{border-color:var(--primary)!important}
+.st-deadline-input{
+  width:130px;padding:5px 8px;border:1px solid var(--border);
+  border-radius:6px;font-size:12px;color:var(--text-mute);background:#fff;
+  flex-shrink:0;
+}
+.st-deadline-input:focus{border-color:var(--primary)!important}
+.st-deadline-input:disabled{opacity:.5;cursor:not-allowed}
+.st-deadline-tag{font-size:10px;padding:2px 6px;border-radius:8px;background:#f5efe3;color:#8a6f3a;white-space:nowrap;flex-shrink:0;font-weight:500}
+.st-deadline-tag.urgent{background:#f0ddd4;color:#a87060}
+.st-deadline-tag.overdue{background:var(--danger);color:#fff}
 .deps-btn{
   width:30px;height:30px;border-radius:6px;
   display:flex;align-items:center;justify-content:center;
@@ -875,6 +886,7 @@ textarea{resize:vertical;min-height:80px}
         <div class="subtask-add">
           <input type="text" id="stName" placeholder="子项任务名称">
           <input type="number" id="stHours" class="hours" placeholder="小时" min="0" step="0.5">
+          <input type="date" id="stDeadline" class="st-add-deadline" placeholder="到期日">
           <button class="btn btn-sm btn-primary" onclick="addSubtaskRow()">添加</button>
         </div>
       </div>
@@ -1370,7 +1382,9 @@ function collectPendingSubtasks(){
         return ds && ds.done;
       });
       if(!depsReady && (s.deps || []).length) return;
-      const wdays = workdaysUntil(p.deadline);
+      // 子项有 deadline 时优先用子项的，否则用项目的
+      const effectiveDeadline = s.deadline || p.deadline;
+      const wdays = workdaysUntil(effectiveDeadline);
       items.push({
         subtaskId: s.id,
         projectId: p.id,
@@ -1379,9 +1393,9 @@ function collectPendingSubtasks(){
         hours: +s.hours || 0,
         priority: p.priority,
         importance: p.importance,
-        deadline: p.deadline,
+        deadline: effectiveDeadline,
         workdaysLeft: wdays,
-        daysLeft: daysUntil(p.deadline),
+        daysLeft: daysUntil(effectiveDeadline),
         depsReady
       });
     });
@@ -1976,7 +1990,9 @@ function renderSubtaskList(){
       <input type="checkbox" ${s.done?'checked':''} onchange="toggleSubtaskById('${s.id}')">
       <span class="st-name" onclick="editSubtaskName(this,'${s.id}')" title="点击修改名称">${escapeHtml(s.name)}</span>
       <input type="number" class="st-hours-input" value="${s.hours}" min="0" step="0.5"
-             onclick="event.stopPropagation()" onchange="updateSubtaskHoursInEdit('${s.id}',this.value)">
+             onclick="event.stopPropagation()" onchange="updateSubtaskHoursInEdit('${s.id}',this.value)" title="工时">
+      <input type="date" class="st-deadline-input" value="${s.deadline||''}"
+             onclick="event.stopPropagation()" onchange="updateSubtaskDeadlineInEdit('${s.id}',this.value)" title="子项到期日">
       <button class="deps-btn ${deps.length?'has-deps':''}" onclick="openDepsPopover(editingSubtasks,'${s.id}',event)" title="设置前置依赖">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         ${deps.length?`<span class="deps-count">${deps.length}</span>`:''}
@@ -1998,6 +2014,11 @@ function updateSubtaskHoursInEdit(id, val){
   if(!s) return;
   const num = parseFloat(val);
   s.hours = (isNaN(num) || num < 0) ? 0 : num;
+}
+function updateSubtaskDeadlineInEdit(id, val){
+  const s = editingSubtasks.find(x=>x.id===id);
+  if(!s) return;
+  s.deadline = val || '';
 }
 function editSubtaskName(el, id){
   const s = editingSubtasks.find(x=>x.id===id);
@@ -2023,10 +2044,12 @@ function editSubtaskName(el, id){
 function addSubtaskRow(){
   const name = document.getElementById('stName').value.trim();
   const hours = parseFloat(document.getElementById('stHours').value) || 0;
+  const deadline = document.getElementById('stDeadline').value || '';
   if(!name){ toast('请输入子项名称'); return; }
-  editingSubtasks.push({id:uid('s'),name,hours,done:false});
+  editingSubtasks.push({id:uid('s'),name,hours,done:false,deadline});
   document.getElementById('stName').value = '';
   document.getElementById('stHours').value = '';
+  document.getElementById('stDeadline').value = '';
   renderSubtaskList();
 }
 function toggleSubtask(i){ editingSubtasks[i].done = !editingSubtasks[i].done; renderSubtaskList(); }
@@ -2140,11 +2163,20 @@ function openDetailModal(id){
   }else{
     sortSubtasksByDeps(subtasks).forEach(s=>{
       const deps = s.deps || [];
+      const stDays = s.deadline ? daysUntil(s.deadline) : null;
+      const stDeadlineTag = s.deadline ? (() => {
+        const cls = stDays < 0 ? 'overdue' : (stDays <= 1 ? 'urgent' : '');
+        const label = stDays < 0 ? `逾期 ${Math.abs(stDays)}天` : stDays === 0 ? '今天到期' : stDays === 1 ? '明天到期' : `${stDays}天后`;
+        return `<span class="st-deadline-tag ${cls}">${label}</span>`;
+      })() : '';
       html += `<div class="subtask ${s.done?'done':''}">
         <input type="checkbox" ${s.done?'checked':''} onchange="toggleSubtaskInDetail('${p.id}','${s.id}')">
         <span class="st-name">${escapeHtml(s.name)}</span>
+        ${stDeadlineTag}
         <input type="number" class="st-hours-input" value="${s.hours}" min="0" step="0.5"
-               onclick="event.stopPropagation()" onchange="updateSubtaskHours('${p.id}','${s.id}',this.value)">
+               onclick="event.stopPropagation()" onchange="updateSubtaskHours('${p.id}','${s.id}',this.value)" title="工时">
+        <input type="date" class="st-deadline-input" value="${s.deadline||''}"
+               onclick="event.stopPropagation()" onchange="updateSubtaskDeadlineInDetail('${p.id}','${s.id}',this.value)" title="子项到期日">
         <button class="deps-btn ${deps.length?'has-deps':''}" onclick="openDepsPopover(p.subtasks,'${s.id}',event)" title="设置前置依赖">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           ${deps.length?`<span class="deps-count">${deps.length}</span>`:''}
@@ -2264,6 +2296,17 @@ function updateSubtaskHours(pid, sid, val){
   render();
   openDetailModal(pid);
   toast('工时已更新');
+}
+function updateSubtaskDeadlineInDetail(pid, sid, val){
+  const p = projects.find(x=>x.id===pid);
+  if(!p) return;
+  const s = (p.subtasks||[]).find(x=>x.id===sid);
+  if(!s) return;
+  s.deadline = val || '';
+  p.updatedAt = Date.now();
+  saveProjects();
+  render();
+  openDetailModal(pid);
 }
 
 function openDepsPopover(subs, sid, evt){
