@@ -1745,10 +1745,10 @@ function renderStats(){
     const d = daysUntil(p.deadline);
     return d !== null && d < 0;
   }).length;
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statDone').textContent = done;
-  document.getElementById('statDoing').textContent = doing;
-  document.getElementById('statOverdue').textContent = overdue;
+  document.getElementById('statTotal').querySelector('.num').textContent = total;
+  document.getElementById('statDone').querySelector('.num').textContent = done;
+  document.getElementById('statDoing').querySelector('.num').textContent = doing;
+  document.getElementById('statOverdue').querySelector('.num').textContent = overdue;
 }
 
 /* ---------- Projects ---------- */
