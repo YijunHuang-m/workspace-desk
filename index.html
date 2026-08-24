@@ -1834,9 +1834,17 @@ function renderProjects(){
 }
 function filterProjectsByStat(filter){
   statusFilter = filter;
-  // 切换到项目 tab
-  switchTab('projects');
-  renderProjects();
+  // 如果已在项目 tab，只重新渲染列表（保留滚动位置）
+  const projSection = document.getElementById('section-projects');
+  if(projSection && projSection.classList.contains('active')){
+    const scrollY = window.scrollY;
+    renderProjects();
+    window.scrollTo(0, scrollY);
+  } else {
+    // 不在项目 tab，切换过去
+    switchTab('projects');
+    renderProjects();
+  }
 }
 function toggleShowArchived(){
   showArchived = !showArchived;
