@@ -441,7 +441,10 @@ textarea{resize:vertical;min-height:80px}
 .stat{
   background:var(--card);border-radius:var(--radius);padding:12px;
   box-shadow:var(--shadow);text-align:center;border:1px solid var(--border);
+  cursor:pointer;transition:all .15s;user-select:none;
 }
+.stat:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+.stat.active{border-color:var(--primary);background:var(--primary-light)}
 .stat .num{font-size:20px;font-weight:700;color:var(--primary)}
 .stat .lbl{font-size:11px;color:var(--text-mute);margin-top:2px}
 .stat.danger .num{color:var(--danger)}
@@ -748,10 +751,10 @@ textarea{resize:vertical;min-height:80px}
   <!-- ============ Projects Section ============ -->
   <div class="section active" id="section-projects">
     <div class="stat-strip">
-      <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">项目总数</div></div>
-      <div class="stat success"><div class="num" id="statDone">0</div><div class="lbl">已完成</div></div>
-      <div class="stat warn"><div class="num" id="statDoing">0</div><div class="lbl">进行中</div></div>
-      <div class="stat danger"><div class="num" id="statOverdue">0</div><div class="lbl">已逾期</div></div>
+      <div class="stat" id="statTotal" data-filter="all" onclick="filterProjectsByStat('all')" title="点击查看所有项目"><div class="num">0</div><div class="lbl">项目总数</div></div>
+      <div class="stat success" id="statDone" data-filter="done" onclick="filterProjectsByStat('done')" title="点击查看已完成项目"><div class="num">0</div><div class="lbl">已完成</div></div>
+      <div class="stat warn" id="statDoing" data-filter="doing" onclick="filterProjectsByStat('doing')" title="点击查看进行中项目"><div class="num">0</div><div class="lbl">进行中</div></div>
+      <div class="stat danger" id="statOverdue" data-filter="overdue" onclick="filterProjectsByStat('overdue')" title="点击查看已逾期项目"><div class="num">0</div><div class="lbl">已逾期</div></div>
     </div>
     <div class="section-head">
       <div class="section-title">
@@ -1111,6 +1114,7 @@ let currentSubsContext = null; // 当前依赖 popover 操作的子项数组引�
 let showArchived = false;  // 是否显示已归档项目
 let dailyCapacity = parseFloat(localStorage.getItem('wb_daily_capacity')) || 4;  // 每日可用工时
 let todayCapacityOverride = null;  // 今天临时容量覆盖（null=用默认）
+let statusFilter = 'all';  // 状态过滤器：all/done/doing/overdue
 
 /* ---------- Storage ---------- */
 function loadData(){
@@ -1782,14 +1786,57 @@ function renderProjects(){
     return;
   }
   // 活跃项目：未完成在前，按四象限推荐顺序
-  const ordered = getRecommendedOrder().filter(x => !x.p.archived).map(x=>x.p);
+  let activeAll = getRecommendedOrder().filter(x => !x.p.archived).map(x=>x.p);
   const doneActive = activeProjects.filter(p=>p.status==='done');
-  let all = [...ordered, ...doneActive];
+  let all = [...activeAll, ...doneActive];
   // 已归档（仅 showArchived 时显示）
   if(showArchived){
     all = [...all, ...archivedProjects.sort((a,b)=>(b.archivedAt||0)-(a.archivedAt||0))];
   }
-  list.innerHTML = all.map(p=>renderProjectCard(p)).join('');
+  // 应用状态过滤
+  let filtered = all;
+  let filterLabel = '';
+  if(statusFilter === 'doing'){
+    filtered = all.filter(p => p.status === 'doing');
+    filterLabel = '进行中';
+  } else if(statusFilter === 'done'){
+    filtered = all.filter(p => p.status === 'done');
+    filterLabel = '已完成';
+  } else if(statusFilter === 'overdue'){
+    filtered = all.filter(p => {
+      if(p.status === 'done' || p.archived) return false;
+      const d = daysUntil(p.deadline);
+      return d !== null && d < 0;
+    });
+    filterLabel = '已逾期';
+  }
+  // 高亮当前激活的 stat 卡片
+  document.querySelectorAll('.stat').forEach(el => el.classList.remove('active'));
+  const activeStat = document.querySelector(`.stat[data-filter="${statusFilter}"]`);
+  if(activeStat) activeStat.classList.add('active');
+  // 过滤结果顶部条
+  let resultHtml = '';
+  if(statusFilter !== 'all'){
+    resultHtml = `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--primary-light);border:1px solid #ddd4c0;border-radius:var(--radius);margin-bottom:10px;font-size:13px">
+      <span>当前筛选：<b style="color:var(--primary)">${filterLabel}</b>（共 <b>${filtered.length}</b> 个项目）</span>
+      <button class="btn btn-sm btn-ghost" onclick="statusFilter='all';renderProjects()">清除筛选</button>
+    </div>`;
+  }
+  if(filtered.length === 0){
+    list.innerHTML = resultHtml + `<div class="empty-state" style="grid-column:1/-1">
+      ${ICONS.doc}
+      <p>没有${filterLabel || ''}的项目</p>
+      <button class="btn btn-ghost" onclick="statusFilter='all';renderProjects()">查看所有项目</button>
+    </div>`;
+    return;
+  }
+  list.innerHTML = resultHtml + filtered.map(p=>renderProjectCard(p)).join('');
+}
+function filterProjectsByStat(filter){
+  statusFilter = filter;
+  // 切换到项目 tab
+  switchTab('projects');
+  renderProjects();
 }
 function toggleShowArchived(){
   showArchived = !showArchived;
