@@ -2439,33 +2439,43 @@ function pickImportItem(kind, projectId, subtaskId){
   if(!sec) return;
   const line = sec.lines[li];
   if(!line) return;
-  const item = line.items[ii];
-  if(!item) return;
+  // 从"+ 从项目导入"按钮调用时 ii 为 undefined → 创建新条目并填充 name+progress
+  // 从进展描述导入按钮调用时 ii 有值 → 只修改已有条目的 progress
+  let item;
+  let isNew = false;
+  if(ii === undefined || ii === null){
+    item = {id:uid('i'), name:'', progress:'', group:''};
+    line.items.push(item);
+    isNew = true;
+  }else{
+    item = line.items[ii];
+    if(!item) return;
+  }
   const p = projects.find(x => x.id === projectId);
   if(!p) return;
 
   if(kind === 'project'){
-    if(field === 'name'){
+    if(field !== 'progress'){
       item.name = p.name;
-      item._importedFrom = {type:'project', id:p.id, name:p.name};
-    }else{
+    }
+    if(field === 'progress' || isNew){
       const desc = (p.description||'').trim();
       item.progress = desc || `（项目：${p.name}）`;
-      item._importedFrom = {type:'project', id:p.id, name:p.name};
     }
+    item._importedFrom = {type:'project', id:p.id, name:p.name};
   }else{
     const s = (p.subtasks||[]).find(x => x.id === subtaskId);
     if(!s) return;
-    if(field === 'name'){
+    if(field !== 'progress'){
       item.name = s.name;
-      item._importedFrom = {type:'subtask', projectId:p.id, projectName:p.name, subtaskId:s.id, name:s.name};
-    }else{
+    }
+    if(field === 'progress' || isNew){
       const status = s.done ? '已完成' : '进行中';
       const hours = s.hours ? `${s.hours}h` : '';
       const ddl = s.deadline ? `，截止 ${s.deadline}` : '';
       item.progress = `${status}${hours ? '（' + hours + '）' : ''}${ddl}`;
-      item._importedFrom = {type:'subtask', projectId:p.id, projectName:p.name, subtaskId:s.id, name:s.name};
     }
+    item._importedFrom = {type:'subtask', projectId:p.id, projectName:p.name, subtaskId:s.id, name:s.name};
   }
   closeImportPicker();
   renderReportEditor();
@@ -3779,6 +3789,24 @@ window.addEventListener('error', e => {
   render();
   // 如果已启用云同步，启动后异步拉取（询问用户覆盖）
   if(syncConfig?.enabled) initSyncOnLoad();
+
+  // 调试辅助：在 console 检查规划算法收集了哪些项（含逾期项）
+  window._debugPlan = function(){
+    const items = collectPendingSubtasks();
+    console.table(items.map(it=>({
+      project: it.projectName,
+      subtask: it.subtaskName,
+      deadline: it.deadline || '无',
+      daysLeft: it.daysLeft,
+      workdaysLeft: it.workdaysLeft,
+      overdue: it.daysLeft !== null && it.daysLeft < 0,
+      isProjectLevel: it.isProjectLevel,
+      hours: it.hours,
+    })));
+    const today = allocateWorkload(dailyCapacity)[0];
+    console.log('今日分配', today.allocated.length, '项', today.totalHours + 'h');
+    return items;
+  };
 })();
 </script>
 </body>
