@@ -167,6 +167,33 @@ textarea{resize:vertical;min-height:80px}
 .plan-item.urgent{border-left:3px solid var(--danger)}
 .plan-item.normal{border-left:3px solid var(--warn)}
 .plan-item.light{border-left:3px solid var(--info)}
+.plan-item.overdue{
+  background:linear-gradient(0deg,rgba(192,138,120,0.10),rgba(192,138,120,0.10)),var(--card);
+  border-left:3px solid var(--danger);
+  border-color:var(--danger);
+  animation:overduePulse 2s ease-in-out infinite;
+}
+.plan-item.project-level{
+  border-style:dashed;
+  background:#faf7f0;
+}
+.plan-item.project-level.overdue{
+  border-style:dashed;
+}
+.plan-item .plan-badge{
+  display:inline-block;
+  font-size:10px;
+  padding:1px 6px;
+  border-radius:6px;
+  font-weight:600;
+  margin-left:4px;
+}
+.plan-item .plan-badge.overdue{background:var(--danger);color:#fff}
+.plan-item .plan-badge.project{background:var(--primary-light);color:var(--primary-dark)}
+@keyframes overduePulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(192,138,120,0.0)}
+  50%{box-shadow:0 0 0 4px rgba(192,138,120,0.18)}
+}
 .plan-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .plan-dot.urgent{background:var(--danger)}
 .plan-dot.normal{background:var(--warn)}
@@ -419,6 +446,40 @@ textarea{resize:vertical;min-height:80px}
 .re-add-btn:hover{background:var(--primary-light)}
 .re-add-line{font-size:12px;color:var(--primary);cursor:pointer;padding:6px 12px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:transparent;text-align:center;margin-top:8px}
 .re-add-line:hover{background:var(--primary-light)}
+.re-add-btns{display:flex;gap:6px;margin-top:4px}
+.re-add-btns .re-add-btn{flex:1;margin:0}
+.re-add-btn.primary{background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark)}
+.re-add-btn.primary:hover{background:var(--primary);color:#fff}
+.re-progress-wrap{flex:1;min-width:0;display:flex;gap:4px;align-items:center}
+.re-progress-wrap .re-item-progress{flex:1;min-width:0}
+.re-import-btn{
+  flex-shrink:0;width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--primary);background:var(--primary-light);
+  border:1px solid var(--border);border-radius:4px;cursor:pointer;
+  font-size:13px;line-height:1;
+}
+.re-import-btn:hover{background:var(--primary);color:#fff}
+
+/* Import picker modal */
+.ipicker-project{margin-bottom:10px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:#fff}
+.ipicker-project.overdue{border-color:var(--danger);background:#fff5f3}
+.ipicker-row{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s}
+.ipicker-row:last-child{border-bottom:none}
+.ipicker-row:hover{background:var(--primary-light)}
+.ipicker-row.sub{padding-left:28px;background:#fafaf6;font-size:12px}
+.ipicker-row.sub:hover{background:var(--primary-light)}
+.ipicker-row.sub.done .ipicker-name span:last-child{text-decoration:line-through}
+.ipicker-name{flex:1;min-width:0;display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ipicker-kind{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--primary);color:#fff;flex-shrink:0;font-weight:500}
+.ipicker-row.sub .ipicker-kind{background:var(--text-mute)}
+.ipicker-status{font-size:10px;padding:1px 6px;border-radius:4px;background:#7a9a7d;color:#fff;flex-shrink:0}
+.ipicker-meta{display:flex;gap:8px;font-size:11px;color:var(--text-mute);align-items:center;flex-shrink:0}
+.ipicker-prio{font-weight:600;color:var(--primary);font-size:11px}
+.ipicker-days{font-weight:600}
+.ipicker-project.overdue .ipicker-days{color:var(--danger)}
+.ipicker-empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:13px}
+.ipicker-hint{padding:8px 12px;background:var(--primary-light);font-size:11px;color:var(--primary-dark);border-bottom:1px solid var(--border)}
 
 /* ========== New Report Choice ========== */
 .nr-choice{display:flex;flex-direction:column;gap:10px;padding:8px 0}
@@ -1031,6 +1092,19 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- ============ Import Picker Modal (从项目/子项导入周报条目) ============ -->
+<div class="modal-mask" id="importPickerModal">
+  <div class="modal modal-sm" style="max-width:540px">
+    <div class="modal-head">
+      <div class="modal-title" id="importPickerTitle">从项目导入</div>
+      <button class="btn-icon btn-ghost" onclick="closeImportPicker()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="importPickerBody" style="max-height:60vh;overflow-y:auto;padding:0"></div>
+  </div>
+</div>
+
 <!-- ============ Cloud Sync Modal ============ -->
 <div class="modal-mask" id="cloudSyncModal" data-page-node-id="MAQgYN2va3MBESzdUf58Jf">
   <div class="modal" style="max-width:540px" data-page-node-id="zB7SVlSaH4UMMAq780BsaP">
@@ -1450,13 +1524,14 @@ function isDayAvailable(date, mode){
   return isWorkday(date);
 }
 
-// 收集所有未完成、未归档的子项（展平成统一结构）
+// 收集所有未完成、未归档的子项 + 已逾期/紧急的项目本身
 function collectPendingSubtasks(){
   const items = [];
   projects.forEach(p=>{
     if(p.archived || p.status === 'done') return;
     const mode = p.workdays || 'workdays';
     const subs = sortSubtasksByDeps(p.subtasks || []);
+    let hasUndone = false;
     subs.forEach(s=>{
       if(s.done) return;
       // 依赖未完成的子项不推荐
@@ -1480,9 +1555,35 @@ function collectPendingSubtasks(){
         workdaysLeft: wdays,
         daysLeft: daysUntil(effectiveDeadline),
         workdayMode: mode,
-        depsReady
+        depsReady,
+        isProjectLevel: false,
       });
+      hasUndone = true;
     });
+    // 项目级兜底：无未完成子项 + 项目已逾期或 ≤1 天到期 → 把项目本身作为虚拟规划项
+    const daysLeft = daysUntil(p.deadline);
+    const isOverdue = daysLeft !== null && daysLeft < 0;
+    const isUrgent = daysLeft !== null && daysLeft === 1;
+    if(!hasUndone && (isOverdue || isUrgent)){
+      const wdays = daysUntilForProject(p.deadline, mode);
+      const desc = (p.description||'').trim();
+      items.push({
+        subtaskId: null,
+        projectId: p.id,
+        projectName: p.name,
+        subtaskName: p.name,
+        hours: desc ? 2 : 1,
+        priority: p.priority,
+        importance: p.importance,
+        deadline: p.deadline,
+        workdaysLeft: wdays,
+        daysLeft,
+        workdayMode: mode,
+        depsReady: true,
+        isProjectLevel: true,
+        projectDesc: desc,
+      });
+    }
   });
   return items;
 }
@@ -1623,17 +1724,24 @@ function renderToday(){
   } else {
     html += '<div class="plan-subhead">今日建议清单（按优先级排序）</div>';
     today.allocated.forEach(item => {
-      const urgencyClass = item.workdaysLeft !== null && item.workdaysLeft <= 1 ? 'urgent' :
-                           (item.workdaysLeft !== null && item.workdaysLeft <= 3 ? 'normal' : 'light');
-      const tag = item.daysLeft < 0 ? '已逾期' :
+      const overdue = item.daysLeft !== null && item.daysLeft < 0;
+      const urgencyClass = overdue ? 'urgent' :
+                           (item.workdaysLeft !== null && item.workdaysLeft <= 1 ? 'urgent' :
+                           (item.workdaysLeft !== null && item.workdaysLeft <= 3 ? 'normal' : 'light'));
+      const tag = overdue ? '已逾期 ' + Math.abs(item.daysLeft) + ' 天' :
                  item.daysLeft === 0 ? '今天到期' :
                  item.daysLeft === 1 ? '明天到期' :
                  item.workdaysLeft + '个工作日';
-      html += `<div class="plan-item ${urgencyClass}" onclick="openDetailModal('${item.projectId}')">
+      const itemClasses = ['plan-item', urgencyClass];
+      if(overdue) itemClasses.push('overdue');
+      if(item.isProjectLevel) itemClasses.push('project-level');
+      const badges = overdue ? `<span class="plan-badge overdue">已逾期</span>` : '';
+      const projectBadge = item.isProjectLevel ? `<span class="plan-badge project">项目级</span>` : '';
+      html += `<div class="${itemClasses.join(' ')}" onclick="openDetailModal('${item.projectId}')">
         <span class="plan-dot ${urgencyClass}"></span>
-        <div class="plan-name">${escapeHtml(item.subtaskName)}</div>
+        <div class="plan-name">${escapeHtml(item.subtaskName)}${badges}</div>
         <div class="plan-meta">
-          <span>${escapeHtml(item.projectName)}</span>
+          <span>${escapeHtml(item.projectName)}${projectBadge}</span>
           <span>${tag}</span>
         </div>
         <span class="plan-hours">${item.hours}h</span>
@@ -2078,10 +2186,10 @@ function buildDefaultReportSections(fill){
   return [
     { title:'核心工作进展', maxLines:3, lines:[
       { name:'火龙漫剧APP专项', items:[
-        {id:ri(),name:'信息流激励化实验',progress:f('1%流量下请求曝光显著上涨，初步判断为数据量小导致人群不均，已放量至每组5%观察'),group:'信息流场景'},
+        {id:ri(),name:'信息流激励化实验',progress:f('1%流量下请求曝光显著上涨，初步判断为数据量小导致人群不均，于8月19日放量至每组5%观察，同步排查确认请求上涨原因'),group:'信息流场景'},
         {id:ri(),name:'漫剧信息流支持外显下载需求',progress:f('联调中'),group:'信息流场景'},
         {id:ri(),name:'特征回传',progress:'',group:'信息流场景'},
-        {id:ri(),name:'减少一刷内容个数实验',progress:f('8.18启动放量1%'),group:'信息流场景'},
+        {id:ri(),name:'减少一刷内容个数实验',progress:f('8.18 启动放量 1%'),group:'信息流场景'},
         {id:ri(),name:'阻断式策略优化',progress:f('方案讨论'),group:'信息流场景'},
       ]},
       { name:'AI 工作流', items:[] },
@@ -2223,7 +2331,10 @@ function renderReportEditor(){
         return `<div class="re-item">
           <span class="re-item-num">${ii+1}</span>
           <input class="re-item-name" value="${escapeAttr(it.name)}" placeholder="条目名称" oninput="reUpdateField(${si},${li},${ii},'name',this.value)">
-          <input class="re-item-progress" value="${escapeAttr(it.progress||'')}" placeholder="进展描述（可留空）" oninput="reUpdateField(${si},${li},${ii},'progress',this.value)">
+          <div class="re-progress-wrap">
+            <input class="re-item-progress" value="${escapeAttr(it.progress||'')}" placeholder="进展描述（可留空）" oninput="reUpdateField(${si},${li},${ii},'progress',this.value)">
+            <div class="re-import-btn" onclick="openImportPicker(${si},${li},${ii},'progress')" title="从项目/子项导入进展描述">↓</div>
+          </div>
           <input class="re-item-group" value="${escapeAttr(it.group||'')}" placeholder="分组" oninput="reUpdateField(${si},${li},${ii},'group',this.value)">
           <div class="re-item-del" onclick="reRemoveItem(${si},${li},${ii})" title="删除条目">×</div>
         </div>`;
@@ -2234,7 +2345,10 @@ function renderReportEditor(){
           <span class="re-line-del" onclick="reRemoveLine(${si},${li})">删除业务线</span>
         </div>
         ${itemsHtml}
-        <div class="re-add-btn" onclick="reAddItem(${si},${li})">+ 添加条目</div>
+        <div class="re-add-btns">
+          <div class="re-add-btn" onclick="reAddItem(${si},${li})">+ 手动添加</div>
+          <div class="re-add-btn primary" onclick="openImportPicker(${si},${li})">↓ 从项目导入</div>
+        </div>
       </div>`;
     }).join('');
     return `<div class="re-section">
@@ -2255,6 +2369,107 @@ function reAddLine(si){ editingReport.sections[si].lines.push({name:'新业务�
 function reRemoveLine(si, li){ editingReport.sections[si].lines.splice(li,1); renderReportEditor(); }
 function reAddItem(si, li){ editingReport.sections[si].lines[li].items.push({id:uid('i'),name:'新条目',progress:'',group:''}); renderReportEditor(); }
 function reRemoveItem(si, li, ii){ editingReport.sections[si].lines[li].items.splice(ii,1); renderReportEditor(); }
+
+/* ---------- Import picker (从项目/子项导入) ---------- */
+let importPickerTarget = null;  // {si, li, ii, field}
+
+function openImportPicker(si, li, ii, field){
+  importPickerTarget = {si, li, ii, field};
+  document.getElementById('importPickerTitle').textContent =
+    field === 'progress' ? '导入进展描述（选择项目或子项）' : '导入条目（项目名或子项名）';
+  renderImportPickerList();
+  document.getElementById('importPickerModal').classList.add('show');
+}
+function closeImportPicker(){
+  document.getElementById('importPickerModal').classList.remove('show');
+  importPickerTarget = null;
+}
+function renderImportPickerList(){
+  const body = document.getElementById('importPickerBody');
+  const active = projects.filter(p => !p.archived);
+  if(active.length === 0){
+    body.innerHTML = '<div class="ipicker-empty">还没有未归档的项目，无法导入</div>';
+    return;
+  }
+  const sorted = [...active].sort((a, b) => {
+    const po = {'P0':0,'P1':1,'P2':2,'P3':3};
+    return (po[a.priority]||2) - (po[b.priority]||2);
+  });
+  body.innerHTML = '<div class="ipicker-hint">点击项目行导入项目名/项目描述；点击子项行导入子项名/子项状态描述</div>' +
+    sorted.map(p => {
+      const days = daysUntil(p.deadline);
+      const daysLabel = days === null ? '无DDL' :
+                        days < 0 ? `已逾期${Math.abs(days)}天` :
+                        days === 0 ? '今天到期' :
+                        days === 1 ? '明天到期' :
+                        `${days}天后`;
+      const overdueClass = days !== null && days < 0 ? 'overdue' : '';
+      const subs = sortSubtasksByDeps(p.subtasks || []);
+      const projectNameAttr = escapeAttr(p.name).replace(/'/g, "\\'");
+      const projectDescAttr = escapeAttr((p.description||'').trim()).replace(/'/g, "\\'");
+      return `<div class="ipicker-project ${overdueClass}">
+        <div class="ipicker-row" onclick="pickImportItem('project','${p.id}')">
+          <div class="ipicker-name">
+            <span class="ipicker-kind">项目</span>
+            <span>${escapeHtml(p.name)}</span>
+          </div>
+          <div class="ipicker-meta">
+            <span class="ipicker-prio">${p.priority}</span>
+            <span class="ipicker-days">${daysLabel}</span>
+          </div>
+        </div>
+        ${subs.map(s => `<div class="ipicker-row sub ${s.done?'done':''}" onclick="pickImportItem('subtask','${p.id}','${s.id}')">
+          <div class="ipicker-name">
+            <span class="ipicker-kind">子项</span>
+            <span>${escapeHtml(s.name)}</span>
+            ${s.done ? '<span class="ipicker-status">已完成</span>' : ''}
+          </div>
+          <div class="ipicker-meta">
+            <span>${s.hours||0}h</span>
+            ${s.deadline ? `<span>${s.deadline}</span>` : ''}
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+}
+function pickImportItem(kind, projectId, subtaskId){
+  if(!importPickerTarget) return;
+  const {si, li, ii, field} = importPickerTarget;
+  const sec = editingReport.sections[si];
+  if(!sec) return;
+  const line = sec.lines[li];
+  if(!line) return;
+  const item = line.items[ii];
+  if(!item) return;
+  const p = projects.find(x => x.id === projectId);
+  if(!p) return;
+
+  if(kind === 'project'){
+    if(field === 'name'){
+      item.name = p.name;
+      item._importedFrom = {type:'project', id:p.id, name:p.name};
+    }else{
+      const desc = (p.description||'').trim();
+      item.progress = desc || `（项目：${p.name}）`;
+      item._importedFrom = {type:'project', id:p.id, name:p.name};
+    }
+  }else{
+    const s = (p.subtasks||[]).find(x => x.id === subtaskId);
+    if(!s) return;
+    if(field === 'name'){
+      item.name = s.name;
+      item._importedFrom = {type:'subtask', projectId:p.id, projectName:p.name, subtaskId:s.id, name:s.name};
+    }else{
+      const status = s.done ? '已完成' : '进行中';
+      const hours = s.hours ? `${s.hours}h` : '';
+      const ddl = s.deadline ? `，截止 ${s.deadline}` : '';
+      item.progress = `${status}${hours ? '（' + hours + '）' : ''}${ddl}`;
+      item._importedFrom = {type:'subtask', projectId:p.id, projectName:p.name, subtaskId:s.id, name:s.name};
+    }
+  }
+  closeImportPicker();
+  renderReportEditor();
+}
 
 /* ---------- New Report Flow ---------- */
 function openNewReportFlow(){
@@ -3546,6 +3761,20 @@ window.addEventListener('error', e => {
     initSampleData();
   }else{
     loadData();
+    // 老用户升级：自动补一份上周周报作为存档（如果他还没有）
+    if(reports.length === 0){
+      const thisMon = getMonday(new Date());
+      const lastMon = new Date(thisMon); lastMon.setDate(lastMon.getDate() - 7);
+      const lastSun = new Date(thisMon); lastSun.setDate(lastSun.getDate() - 1);
+      reports.push({
+        id: uid('r'),
+        weekStart: fmtDate(lastMon),
+        weekEnd: fmtDate(lastSun),
+        createdAt: Date.now() - 86400000,
+        sections: buildDefaultReportSections(true),
+      });
+      saveReports();
+    }
   }
   render();
   // 如果已启用云同步，启动后异步拉取（询问用户覆盖）
